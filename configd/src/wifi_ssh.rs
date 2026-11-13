@@ -53,8 +53,13 @@ pub fn boottime() -> u64 {
         tv_sec: 0,
         tv_nsec: 0,
     };
-    // SAFETY: a valid out-pointer; CLOCK_BOOTTIME exists on every kernel this runs on.
-    unsafe { libc::clock_gettime(libc::CLOCK_BOOTTIME, &mut ts) };
+    // CLOCK_BOOTTIME is Linux-only. On macOS (the simulator) CLOCK_MONOTONIC also counts sleep.
+    #[cfg(target_os = "linux")]
+    let clock = libc::CLOCK_BOOTTIME;
+    #[cfg(not(target_os = "linux"))]
+    let clock = libc::CLOCK_MONOTONIC;
+    // SAFETY: a valid out-pointer and a clock that exists on this OS.
+    unsafe { libc::clock_gettime(clock, &mut ts) };
     ts.tv_sec as u64
 }
 
